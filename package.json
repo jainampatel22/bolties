@@ -1,5 +1,5 @@
 {
-  "name": "my-turborepo",
+  "name": "bolties",
   "private": true,
   "scripts": {
     "build": "turbo run build",
