@@ -8,6 +8,7 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+RUN mkdir -p /tmp/bolty-worker
 # Revert to the code-server default user
 USER coder
 # Expose code-server's default port
@@ -17,4 +18,4 @@ RUN mkdir -p /home/coder/.local/share/code-server/User
 RUN echo '{"workbench.colorTheme": "Dark+", "workbench.preferredDarkColorTheme": "Dark+"}' > /home/coder/.local/share/code-server/User/settings.json
 
 # Start code-server on container launch
-CMD ["code-server", "--auth", "none", "--bind-addr", "0.0.0.0:8080", "--disable-telemetry", "/app"]
+CMD ["code-server", "--auth", "none", "--bind-addr", "0.0.0.0:8080","/tmp/bolty-worker"]
