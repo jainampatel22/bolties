@@ -20,16 +20,16 @@ model User{
   updatedAt DateTime @updatedAt
 }
 model Project {
-  id String @id @default(uuid())
+  id          String   @id @default(uuid())
   description String?
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  prompt Prompt[]
-userId String
-
-Action Action[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  prompt      Prompt[]
+  actions     Action[]
+  type        ProjectType @default(NEXTJS)
+  userId      String
 }
+
 
 model Prompt {
   id String @id @default(uuid())
@@ -53,7 +53,12 @@ model Action {
   prompt    Prompt   @relation(fields: [promptId], references: [id])
 }
 
-enum PromptType{
-  User
+enum PromptType {
+  USER
   SYSTEM
+}
+enum ProjectType {
+  REACT_NATIVE
+  NEXTJS
+  REACT
 }

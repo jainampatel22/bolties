@@ -1,6 +1,6 @@
-import { prismaClient } from "../../packages/db";
+import { prismaClient } from "../../packages/db/index.ts";
 
-function baseWorkerDir(type:"NEXTJS" | "REACT_NATIVE"){
+function baseWorkerDir(type:"NEXTJS" | "REACT_NATIVE" | "REACT"){
 if(type="NEXTJS"){
     return "/tmp/next-app"
 }
@@ -9,7 +9,7 @@ return "tmp/mobile-app"
 
 const ws = new WebSocket(process.env.WS_RELAYER_URL || "ws://ws-relayer:9093");
 
-export async function onFileUpdate(filePath:string,fileContent:string,projectId:string,promptId:string,type:"NEXTJS"|"REACT_NATIVE") {
+export async function onFileUpdate(filePath: string, fileContent: string, projectId: string, promptId: string, type: "NEXTJS" | "REACT_NATIVE" | "REACT")  {
     await prismaClient.action.create({
         data:{
             projectId,
