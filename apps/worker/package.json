@@ -17,6 +17,14 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "openai": "^4.86.2",
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.0.0",
     "ws": "^8.18.1"
+  },
+  "devDependencies": {
+    "@types/unist": "^3.0.3"
   }
 }

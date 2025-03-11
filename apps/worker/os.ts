@@ -1,100 +1,78 @@
 import { prismaClient } from "../../packages/db/index.ts";
+import { access, mkdir, writeFile } from 'fs/promises';
+import { spawnSync } from 'child_process';
+import path from 'path';
+import { constants } from 'fs';
 
-function baseWorkerDir(type: "NEXTJS" | "REACT_NATIVE" | "REACT") {
-    return type === "NEXTJS" ? "/tmp/next-app" : "tmp/mobile-app";
+// Define as a directory path
+const BASE_WORKER_DIR = process.env.BASE_WORKER_DIR || "/tmp/bolty-worker";
+
+// Ensure the directory exists before using it
+async function ensureDirectoryExists(dirPath: string) {
+  try {
+    // Check if the directory exists
+    await access(dirPath, constants.F_OK);
+    console.log(`Directory exists: ${dirPath}`);
+  } catch (error) {
+    // If directory does not exist, create it
+    await mkdir(dirPath, { recursive: true });
+    console.log(`Directory created: ${dirPath}`);
+  }
 }
 
-// Ensure WebSocket connection is open before sending
-function getWebSocket(): Promise<WebSocket> {
-    return new Promise((resolve) => {
-        if (ws.readyState === WebSocket.OPEN) {
-            resolve(ws);
-        } else {
-            ws.addEventListener(
-                "open",
-                () => resolve(ws),
-                { once: true } // Run only once
-            );
-        }
-    });
-}
+// Initialize the directory when the module loads
+ensureDirectoryExists(BASE_WORKER_DIR);
 
-const ws = new WebSocket(process.env.WS_RELAYER_URL || "ws://ws-relayer:9091");
-
-ws.onopen = () => {
-    console.log("WebSocket connected.");
-};
-
-ws.onerror = (err) => {
-    console.error("WebSocket Error:", err);
-};
-
-// 🟢 Ensure WebSocket is ready before sending
-async function sendWebSocketMessage(message: object) {
-    const socket = await getWebSocket();
-    socket.send(JSON.stringify(message));
-}
-
-// 🟢 Fix: Ensure WebSocket is connected before sending
 export async function onFileUpdate(filePath: string, fileContent: string, projectId: string, promptId: string, type: "NEXTJS" | "REACT_NATIVE" | "REACT") {
-    await prismaClient.action.create({
-        data: {
-            projectId,
-            promptId,
-            content: `Updated file: ${filePath}`
-        }
-    });
-
-    sendWebSocketMessage({
-        event: "admin",
-        data: {
-            type: "updated-file",
-            content: filePath,
-            path: `${baseWorkerDir(type)}/${filePath}`
-        }
-    });
+  console.log(`Writing file: ${filePath}`);
+  
+  // Ensure the directory structure exists
+  const fullPath = path.join(BASE_WORKER_DIR, filePath);
+  const dirName = path.dirname(fullPath);
+  
+  await ensureDirectoryExists(dirName);
+  
+  // Now write the file
+ try {
+    await writeFile(fullPath, fileContent, 'utf-8');
+    console.log(`Successfully wrote to ${fullPath}`);
+} catch (error) {
+    console.error(`Error writing to ${fullPath}:`, error);
 }
 
-// 🟢 Fix: Ensure WebSocket is connected before sending
-export async function onShellCommand(shellCommand: string, projectId: string, promptId: string) {
-    const commands = shellCommand.split("&&");
-    for (const command of commands) {
-        console.log(`Running command: ${command}`);
+}
 
-        sendWebSocketMessage({
-            event: "admin",
-            data: {
-                type: "command",
-                command: command
-            }
-        });
-
-        await prismaClient.action.create({
-            data: {
-                projectId,
-                promptId,
-                content: `Run command: ${command}`
-            }
-        });
+export async function onShellCommand(shellCommand: string, projectId: string) {
+  const commands = shellCommand.split("&&");
+  
+  for (const command of commands) {
+    console.log(`Running command: ${command}`);
+    
+    try {
+      const result = spawnSync(command.trim().split(' ')[0], command.trim().split(' ').slice(1), {
+        cwd: BASE_WORKER_DIR,
+        encoding: 'utf-8',
+        shell: true,
+      });
+      
+      console.log("STDOUT:", result.stdout);
+      
+      if (result.stderr) {
+        console.log("STDERR:", result.stderr);
+      }
+     
+    } catch (error) {
+      console.error(`Error executing command ${command}:`, error);
     }
+  }
 }
 
-// 🟢 Fix: Ensure WebSocket is connected before sending
 export async function onPromptStart(promptId: string) {
-    sendWebSocketMessage({
-        event: "admin",
-        data: {
-            type: "prompt-start"
-        }
-    });
+  console.log(`Prompt started: ${promptId}`);
+  // Additional logic here as needed
 }
 
-// 🟢 Fix: Ensure WebSocket is connected before sending
 export async function onPromptEnd(promptId: string) {
-    sendWebSocketMessage({
-        event: "admin",
-        data: {
-            type: "prompt-end"
-        }
-    });
+  console.log(`Prompt ended: ${promptId}`);
+  // Additional logic here as needed
 }

@@ -3,9 +3,8 @@ import cors from "cors";
 import {prismaClient} from '../../packages/db/index.ts';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ArtifactProcessor } from "./parser.ts";
-import { onFileUpdate, onPromptEnd, onPromptStart, onShellCommand } from "./os.ts";
+import { onFileUpdate,onShellCommand } from "./os.ts";
 import { systemPrompt } from "./SystemPrompt.ts";
-
 const app = express();
 
 app.use(cors());
@@ -44,13 +43,16 @@ app.post('/prompt', async(req, res) => {
         },
     });
     
-    let artifactProcessor = new ArtifactProcessor("", 
-        (filePath, fileContent) => onFileUpdate(filePath, fileContent, projectId, promptdb.id, project.type as "NEXTJS" | "REACT_NATIVE" | "REACT"), 
-        (shellCommand) => onShellCommand
-    );
+    let artifactProcessor = new ArtifactProcessor(
+      "",
+      (filePath, fileContent) => onFileUpdate(filePath, fileContent, projectId, promptdb.id, project.type as "NEXTJS" | "REACT_NATIVE" | "REACT"),
+      (shellCommand) => onShellCommand(shellCommand, projectId) // Pass all required arguments
+  );
+  
+  
     
     let artifact = "";
-    onPromptStart(promptdb.id);
+  
 
     try {
       // Convert system prompt to a user message with instructions instead
@@ -100,8 +102,9 @@ app.post('/prompt', async(req, res) => {
         }
       });
       
-      onPromptEnd(promptdb.id);
+
       res.json({response: artifact});
+      console.log("added artifact")
     } catch (error:any) {
       console.error("Error:", error);
       res.status(500).json({ error: "Something went wrong", details: error.message });
